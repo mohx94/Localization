@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>هائل لصيانة السيارات — لوحة التوطين</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="index.html">
+      <span class="brand-mark"></span>
+      <span>بيت هايل<small>لوحة التوطين ونطاقات</small></span>
+    </a>
+    <button class="menu-btn" aria-label="القائمة">☰</button>
+    <nav class="mainnav">
+      <a href="index.html">الرئيسية</a>
+      <a href="materials.html">مواد البناء</a>
+      <a href="transport.html">النقليات</a>
+      <a href="maintenance.html">الصيانة</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <span class="eyebrow">سجل منشأة: 32-1942463</span>
+    <h1>هائل لصيانة السيارات</h1>
+    <p class="lead">تفاصيل التوطين وتوزيع الموظفين محسوبة مباشرة من ملف البيانات الحالي.</p>
+  </div>
+</section>
+
+<section id="loading" class="wrap">
+  <div class="loading-note"><div class="spin"></div>جاري تحميل بيانات هائل لصيانة السيارات…</div>
+</section>
+
+<div id="content" style="display:none">
+
+<section>
+  <div class="wrap">
+    <div class="chart-grid" style="grid-template-columns:.9fr 1.5fr;">
+      <div class="gauge-card">
+        <div id="gauge-svg"></div>
+        <div class="gauge-pct num" id="gauge-pct-label"></div>
+        <div class="gauge-band" id="gauge-band-label"></div>
+        <div class="gauge-sub" id="gauge-sub"></div>
+        <div style="font-size:11.5px;color:var(--ink-soft);margin-top:10px;line-height:1.5;">النسبة هنا = عدد السعوديين ÷ الإجمالي من ملف البيانات، وهي تقديرية.<br>الحساب الرسمي لمنصة قوى قد يستخدم أوزاناً إضافية (نوع العقد، ذوي الإعاقة، ...) — راجع قوى للرقم المعتمد رسمياً.</div>
+      </div>
+      <div id="ruler-container"></div>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="wrap">
+    <div class="stat-grid">
+      <div class="stat-box"><div class="v num" id="stat-total"></div><div class="l">إجمالي الموظفين</div></div>
+      <div class="stat-box gold"><div class="v num" id="stat-saudi"></div><div class="l">موظفون سعوديون</div></div>
+      <div class="stat-box"><div class="v num" id="stat-nonsaudi"></div><div class="l">موظفون غير سعوديين</div></div>
+      <div class="stat-box red" id="need-box"><div class="v num" id="stat-need"></div><div class="l" id="stat-need-label">للوصول للنطاق التالي</div></div>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="wrap">
+    <div class="section-head"><h2>توزيع الجنسيات (غير السعوديين)</h2></div>
+    <div class="chart-grid">
+      <div class="chart-card">
+        <h3>أعلى الجنسيات عدداً</h3>
+        <div class="canvas-wrap"><canvas id="chart-nat"></canvas></div>
+      </div>
+      <div class="chart-card">
+        <h3>سعودي مقابل غير سعودي</h3>
+        <div class="canvas-wrap"><canvas id="chart-split"></canvas></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="wrap">
+    <div class="section-head"><h2>أكثر المهن عدداً</h2></div>
+    <div class="chart-card">
+      <div class="canvas-wrap" style="height:340px;"><canvas id="chart-jobs"></canvas></div>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top:0" id="decisions-section">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>الالتزام بقرارات توطين المهن (وزارة الموارد البشرية)</h2>
+      <span class="hint">مطابقة تلقائية بين مسميات موظفيكم وقرارات التوطين المهني الرسمية</span>
+    </div>
+    <div id="outlet-decision-alert"></div>
+    <div class="guide-grid" id="decisions-grid" style="grid-template-columns:repeat(2,1fr);"></div>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>نسبة توطين كل مهنة</h2>
+      <span class="hint">سعودي ÷ إجمالي العاملين في نفس المهنة — مختلف عن نسبة الشركة ككل</span>
+    </div>
+    <div class="table-card">
+      <div class="table-scroll" style="max-height:520px;">
+        <table>
+          <thead>
+            <tr><th>المهنة</th><th>سعودي</th><th>غير سعودي</th><th>الإجمالي</th><th>نسبة التوطين المهني</th></tr>
+          </thead>
+          <tbody id="job-loc-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="wrap">
+    <div class="section-head"><h2>القائمة التفصيلية</h2><span class="hint" id="table-count"></span></div>
+    <div class="table-card">
+      <div class="table-controls">
+        <input type="text" id="search-box" placeholder="ابحث بالاسم أو المهنة أو الجنسية…">
+        <select id="filter-group">
+          <option value="all">الكل</option>
+          <option value="سعودي">سعودي فقط</option>
+          <option value="غير سعودي">غير سعودي فقط</option>
+        </select>
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th>الاسم</th><th>الفئة</th><th>الجنسية</th><th>الجنس</th><th>المهنة</th></tr>
+          </thead>
+          <tbody id="table-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+</div>
+
+<footer>
+  <div class="wrap">
+    <span>هائل لصيانة السيارات — لوحة توطين داخلية</span>
+    <span>مصدر البيانات: <a href="data/nitaqat.xlsx">nitaqat.xlsx</a> · التصنيف حسب منصة قوى</span>
+  </div>
+</footer>
+
+<script src="assets/app.js"></script>
+<script>
+const COMPANY_KEY = 'maintenance';
+let STATS = null;
+
+async function boot(){
+  try{
+    STATS = await getCompanyStats(COMPANY_KEY);
+    document.getElementById('loading').style.display='none';
+    document.getElementById('content').style.display='block';
+    renderGaugeSection();
+    renderRulerSection();
+    renderStats();
+    renderCharts();
+    renderJobLocalization();
+    renderDecisions();
+    renderTable(STATS.all);
+
+    document.getElementById('search-box').addEventListener('input', applyFilters);
+    document.getElementById('filter-group').addEventListener('change', applyFilters);
+  }catch(e){
+    document.getElementById('loading').innerHTML =
+      `<div class="alert crit"><span class="ico">⚠</span><div class="body"><strong>تعذر تحميل البيانات</strong><span>${e.message}</span></div></div>`;
+    console.error(e);
+  }
+}
+
+function renderGaugeSection(){
+  const svg = document.getElementById('gauge-svg');
+  renderGauge(svg, STATS.pct, STATS.band, STATS.cfg.scaleCap);
+  document.getElementById('gauge-pct-label').textContent = STATS.pct.toFixed(1) + '%';
+  document.getElementById('gauge-pct-label').style.color = cssColor(STATS.band.color);
+  const bandLabel = document.getElementById('gauge-band-label');
+  bandLabel.textContent = STATS.band.name;
+  bandLabel.style.background = `color-mix(in srgb, ${cssColor(STATS.band.color)} 16%, white)`;
+  bandLabel.style.color = cssColor(STATS.band.color);
+  document.getElementById('gauge-sub').textContent = STATS.nextBand
+    ? `يحتاج ${STATS.neededForNext} سعودي للوصول إلى «${STATS.nextBand.name}»`
+    : 'أعلى نطاق ممكن';
+}
+
+function renderRulerSection(){
+  renderRuler(document.getElementById('ruler-container'), STATS.cfg.bands, STATS.pct, STATS.cfg.scaleCap);
+}
+
+function renderStats(){
+  document.getElementById('stat-total').textContent = STATS.total;
+  document.getElementById('stat-saudi').textContent = STATS.saudiCount;
+  document.getElementById('stat-nonsaudi').textContent = STATS.nonSaudiCount;
+  if(STATS.nextBand){
+    document.getElementById('stat-need').textContent = STATS.neededForNext;
+    document.getElementById('stat-need-label').textContent = `سعودي للوصول لنطاق «${STATS.nextBand.name}»`;
+  } else {
+    document.getElementById('need-box').classList.remove('red');
+    document.getElementById('need-box').classList.add('green');
+    document.getElementById('stat-need').textContent = '✓';
+    document.getElementById('stat-need-label').textContent = 'أعلى نطاق ممكن (بلاتيني)';
+  }
+}
+
+function renderCharts(){
+  const natEntries = topEntries(STATS.natCounts, 8);
+  new Chart(document.getElementById('chart-nat'), {
+    type: 'bar',
+    data: {
+      labels: natEntries.map(e=>e[0]),
+      datasets: [{ data: natEntries.map(e=>e[1]), backgroundColor: cssColor('var(--steel)'), borderRadius: 3 }]
+    },
+    options: {
+      indexAxis: 'y',
+      plugins: { legend: { display:false } },
+      scales: { x: { grid:{color: cssColor('var(--line-soft)')} }, y: { grid:{display:false} } }
+    }
+  });
+
+  new Chart(document.getElementById('chart-split'), {
+    type: 'doughnut',
+    data: {
+      labels: ['سعودي', 'غير سعودي'],
+      datasets: [{ data: [STATS.saudiCount, STATS.nonSaudiCount], backgroundColor: [cssColor('var(--vein)'), cssColor('var(--steel-dim)')] }]
+    },
+    options: { plugins: { legend: { position:'bottom', labels:{ font:{family:"'IBM Plex Sans Arabic'"} } } }, cutout:'62%' }
+  });
+
+  const jobEntries = topEntries(STATS.jobCounts, 10);
+  new Chart(document.getElementById('chart-jobs'), {
+    type: 'bar',
+    data: {
+      labels: jobEntries.map(e=>e[0]),
+      datasets: [{ data: jobEntries.map(e=>e[1]), backgroundColor: cssColor('var(--vein)'), borderRadius: 3 }]
+    },
+    options: {
+      plugins: { legend:{display:false} },
+      scales: { y:{ grid:{color: cssColor('var(--line-soft)')}, beginAtZero:true, ticks:{stepSize:1} }, x:{ grid:{display:false}, ticks:{ autoSkip:false, maxRotation:40, minRotation:20 } } }
+    }
+  });
+}
+
+function renderDecisions(){
+  // تنبيه قرار منافذ البيع (يخص جميع الشركات نظراً لنشاط بيع مواد البناء والمقاولات)
+  const oc = document.getElementById('outlet-decision-alert');
+  if(oc){
+    oc.innerHTML = `
+      <div class="alert warn">
+        <span class="ico">🏬</span>
+        <div class="body">
+          <strong>${OUTLET_DECISION.title} — ${OUTLET_DECISION.decree}</strong>
+          <span>نسبة توطين مستهدفة ${OUTLET_DECISION.pct}% لكل منفذ بيع (فرع/معرض) يعمل به ${OUTLET_DECISION.minEmployees} عاملين فأكثر بالوردية الواحدة — تُحسب لكل منفذ على حدة وليس على إجمالي الشركة. ${OUTLET_DECISION.note}</span>
+        </div>
+      </div>`;
+  }
+
+  const grid = document.getElementById('decisions-grid');
+  grid.innerHTML = PROFESSION_DECISIONS.map(d => {
+    const r = computeDecisionCompliance(STATS, d);
+    let statusHtml, cardStyle;
+    if(!r.applicable){
+      statusHtml = `<span style="color:var(--ink-soft);font-weight:700;">لا ينطبق حالياً</span> <span style="font-size:12px;color:var(--ink-soft);">(${r.totalMatched} فقط في هذه المهن، والحد الأدنى ${d.minEmployees})</span>`;
+      cardStyle = 'border-inline-start:4px solid var(--line);';
+    } else if(r.compliant){
+      statusHtml = `<span style="color:var(--band-high);font-weight:700;">✓ ملتزم</span> <span style="font-size:12px;color:var(--ink-soft);">(${r.saudiMatched} سعودي من ${r.totalMatched})</span>`;
+      cardStyle = 'border-inline-start:4px solid var(--band-high);';
+    } else {
+      statusHtml = `<span style="color:var(--band-red);font-weight:700;">يحتاج ${r.gap} سعودي إضافي</span> <span style="font-size:12px;color:var(--ink-soft);">(${r.saudiMatched} من ${r.totalMatched}, المطلوب ${r.requiredCount})</span>`;
+      cardStyle = 'border-inline-start:4px solid var(--band-red);';
+    }
+    return `
+      <div class="guide-card" style="${cardStyle}">
+        <div class="n">${d.pct}% مطلوبة</div>
+        <h4>${d.title}</h4>
+        <p style="margin-bottom:8px;">${d.decree} — سريان الإلزام: ${d.effective}</p>
+        <p style="margin-bottom:10px;">${statusHtml}</p>
+        ${r.jobsFound.length ? `<p style="font-size:12px;color:var(--ink-soft);">المهن الموجودة لديكم: ${r.jobsFound.join('، ')}</p>` : `<p style="font-size:12px;color:var(--ink-soft);">لا توجد مهن مطابقة في ملف بياناتكم حالياً</p>`}
+        ${d.note ? `<p style="font-size:11.5px;color:var(--ink-soft);margin-top:8px;border-top:1px dashed var(--line);padding-top:8px;">${d.note}</p>` : ''}
+      </div>`;
+  }).join('');
+}
+
+function renderJobLocalization(){
+  const tbody = document.getElementById('job-loc-body');
+  tbody.innerHTML = STATS.jobLocalization.map(j => {
+    let color = 'var(--band-red)';
+    if(j.pct >= 50) color = 'var(--band-high)';
+    else if(j.pct >= 25) color = 'var(--vein)';
+    return `
+      <tr>
+        <td>${j.job}</td>
+        <td class="num">${j.saudi}</td>
+        <td class="num">${j.nonSaudi}</td>
+        <td class="num">${j.total}</td>
+        <td>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="flex:1;max-width:120px;height:8px;background:var(--line);border-radius:4px;overflow:hidden;">
+              <div style="width:${j.pct}%;height:100%;background:${color};"></div>
+            </div>
+            <span class="num" style="font-weight:700;color:${color};min-width:44px;">${j.pct.toFixed(0)}%</span>
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+function renderTable(rows){
+  const tbody = document.getElementById('table-body');
+  tbody.innerHTML = rows.map(p => `
+    <tr>
+      <td>${p.name || '—'}</td>
+      <td><span class="tag ${p.group==='سعودي'?'saudi':'nonsaudi'}">${p.group}</span></td>
+      <td>${p.nationality || '—'}</td>
+      <td>${p.gender || '—'}</td>
+      <td>${p.job || '—'}</td>
+    </tr>
+  `).join('');
+  document.getElementById('table-count').textContent = `${rows.length} من ${STATS.all.length}`;
+}
+
+function applyFilters(){
+  const q = document.getElementById('search-box').value.trim();
+  const grp = document.getElementById('filter-group').value;
+  let rows = STATS.all;
+  if(grp !== 'all') rows = rows.filter(r => r.group === grp);
+  if(q) rows = rows.filter(r => (r.name+r.job+r.nationality).includes(q));
+  renderTable(rows);
+}
+
+boot();
+</script>
+</body>
+</html>

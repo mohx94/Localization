@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>لوحة التوطين — بيت هايل</title>
+<link rel="stylesheet" href="assets/style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap">
+    <a class="brand" href="index.html">
+      <span class="brand-mark"></span>
+      <span>بيت هايل<small>لوحة التوطين ونطاقات</small></span>
+    </a>
+    <button class="menu-btn" aria-label="القائمة">☰</button>
+    <nav class="mainnav">
+      <a href="index.html">الرئيسية</a>
+      <a href="materials.html">مواد البناء</a>
+      <a href="transport.html">النقليات</a>
+      <a href="maintenance.html">الصيانة</a>
+    </nav>
+  </div>
+</header>
+
+<section class="hero" style="padding-bottom:0;">
+  <div class="wrap">
+    <span class="eyebrow">Nitaqat · نطاقات</span>
+    <h1>نسبة التوطين لحظياً عبر كياناتنا الثلاثة</h1>
+    <p class="lead">لوحة تُقرأ مباشرة من ملف بيانات الموظفين — كل تحديث على الإكسل (إضافة، نقل، تغيير مهنة) ينعكس هنا تلقائياً دون أي تدخل يدوي إضافي.</p>
+  </div>
+</section>
+
+<section id="alerts-section">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>تنبيهات وحالة النطاق</h2>
+      <span class="hint" id="updated-hint"></span>
+    </div>
+    <div id="alerts-list">
+      <div class="loading-note"><div class="spin"></div>جاري تحميل البيانات وتحليلها…</div>
+    </div>
+  </div>
+</section>
+
+<div class="wrap"><div class="divider"></div></div>
+
+<section id="companies-section">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>الكيانات الثلاثة</h2>
+      <span class="hint">اضغط على أي شركة لعرض التفاصيل الكاملة</span>
+    </div>
+    <div class="company-grid" id="company-grid"></div>
+  </div>
+</section>
+
+<div class="wrap"><div class="divider"></div></div>
+
+<section id="guidance-section">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>توجيهات عامة للامتثال</h2>
+    </div>
+    <div class="guide-grid">
+      <div class="guide-card">
+        <div class="n">تنبيه</div>
+        <h4>راقب النطاق الأحمر فوراً</h4>
+        <p>أي كيان في النطاق الأحمر يواجه قيوداً على استقدام موظفين جدد وتجديد رخص العمل. يُنصح برفع نسبة التوطين قبل أي إجراء استقدام جديد.</p>
+      </div>
+      <div class="guide-card">
+        <div class="n">تحديث دوري</div>
+        <h4>حدّث الملف عند كل تغيير</h4>
+        <p>أي توظيف، إنهاء خدمة، أو نقل داخلي يجب تسجيله في ملف الإكسل فوراً حتى تبقى الأرقام هنا مطابقة للواقع ولمنصة قوى.</p>
+      </div>
+      <div class="guide-card">
+        <div class="n">تحقق دوري</div>
+        <h4>قارن مع منصة قوى شهرياً</h4>
+        <p>نطاقات نطاقات تُحتسب أسبوعياً من منصة قوى بناءً على بيانات التأمينات؛ استخدم هذه اللوحة للمتابعة السريعة، وقوى كمرجع رسمي نهائي.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span>بيت هايل — لوحة توطين داخلية</span>
+    <span>مصدر البيانات: <a href="data/nitaqat.xlsx">nitaqat.xlsx</a> · التصنيف حسب منصة قوى</span>
+  </div>
+</footer>
+
+<script src="assets/app.js"></script>
+<script>
+async function boot(){
+  try{
+    const stats = await getAllStats();
+    document.getElementById('updated-hint').textContent = 'آخر تحميل: ' + new Date().toLocaleString('ar-SA');
+
+    renderAlerts(stats);
+    renderCompanyGrid(stats);
+  }catch(e){
+    document.getElementById('alerts-list').innerHTML =
+      `<div class="alert crit"><span class="ico">⚠</span><div class="body"><strong>تعذر تحميل البيانات</strong><span>${e.message}. تأكد من وجود data/nitaqat.xlsx بجانب الموقع.</span></div></div>`;
+    console.error(e);
+  }
+}
+
+function renderAlerts(stats){
+  const list = document.getElementById('alerts-list');
+  list.innerHTML = '';
+  let any = false;
+
+  Object.values(stats).forEach(s=>{
+    const isLowestBand = s.band === s.cfg.bands[0];
+    const nearNext = s.nextBand && (s.nextBand.min - s.pct) <= 2 && (s.nextBand.min - s.pct) > 0;
+
+    if(isLowestBand){
+      any = true;
+      list.insertAdjacentHTML('beforeend', `
+        <div class="alert crit">
+          <span class="ico">⛔</span>
+          <div class="body">
+            <strong>${s.cfg.name} — في النطاق الأحمر (${s.pct.toFixed(1)}%)</strong>
+            <span>يحتاج ${s.neededForNext} موظف سعودي إضافي (دون تغيير عدد الوافدين) للوصول لأول نطاق أخضر عند ${s.nextBand ? s.nextBand.min : '—'}%.</span>
+          </div>
+        </div>`);
+    } else if(nearNext){
+      any = true;
+      list.insertAdjacentHTML('beforeend', `
+        <div class="alert warn">
+          <span class="ico">◐</span>
+          <div class="body">
+            <strong>${s.cfg.name} — قريب من نطاق أعلى</strong>
+            <span>النسبة الحالية ${s.pct.toFixed(1)}%، ويحتاج ${s.neededForNext} سعودي فقط للوصول إلى «${s.nextBand.name}».</span>
+          </div>
+        </div>`);
+    }
+  });
+
+  list.insertAdjacentHTML('beforeend', `
+    <div class="alert warn">
+      <span class="ico">🏬</span>
+      <div class="body">
+        <strong>${OUTLET_DECISION.title}</strong>
+        <span>${OUTLET_DECISION.decree} — نشاط بيع مواد البناء والرخام والسيراميك مدرج صراحة ضمن هذا القرار بنسبة توطين ${OUTLET_DECISION.pct}% لكل منفذ بيع يعمل به ${OUTLET_DECISION.minEmployees} عاملين فأكثر بالوردية الواحدة. راجع تفاصيل المطابقة في صفحة كل شركة.</span>
+      </div>
+    </div>`);
+
+  const platinum = Object.values(stats).filter(s => s.band.name === 'بلاتيني');
+  if(platinum.length){
+    any = true;
+    platinum.forEach(s=>{
+      list.insertAdjacentHTML('beforeend', `
+        <div class="alert ok">
+          <span class="ico">✓</span>
+          <div class="body">
+            <strong>${s.cfg.name} — النطاق البلاتيني</strong>
+            <span>النسبة الحالية ${s.pct.toFixed(1)}%، أعلى مستوى امتثال. حافظ على هذا المستوى عند أي توظيف جديد.</span>
+          </div>
+        </div>`);
+    });
+  }
+
+  if(!any){
+    list.insertAdjacentHTML('beforeend', `
+      <div class="alert info">
+        <span class="ico">ℹ</span>
+        <div class="body"><strong>لا توجد تنبيهات حرجة حالياً</strong><span>جميع الكيانات ضمن نطاقات مستقرة نسبياً. راجع التفاصيل لكل شركة أدناه.</span></div>
+      </div>`);
+  }
+}
+
+function renderCompanyGrid(stats){
+  const grid = document.getElementById('company-grid');
+  grid.innerHTML = '';
+  Object.values(stats).forEach(s=>{
+    const card = document.createElement('a');
+    card.className = 'co-card';
+    card.href = s.cfg.page;
+    card.style.borderTopColor = s.band.color.replace('var(','').replace(')','') ? getComputedStyle(document.documentElement).getPropertyValue(s.band.color.replace('var(','').replace(')','')) : '';
+    card.innerHTML = `
+      <div>
+        <div class="co-name">${s.cfg.name}</div>
+        <div class="co-id">سجل: ${s.cfg.id}</div>
+      </div>
+      <div>
+        <div class="co-pct num">${s.pct.toFixed(1)}%</div>
+        <span class="co-band-label" style="background:color-mix(in srgb, ${s.band.color} 16%, white); color:${s.band.color}">
+          <span class="dot" style="background:${s.band.color}"></span>${s.band.name}
+        </span>
+      </div>
+      <div class="co-counts">
+        <div><b class="num">${s.total}</b>الإجمالي</div>
+        <div><b class="num">${s.saudiCount}</b>سعودي</div>
+        <div><b class="num">${s.nonSaudiCount}</b>غير سعودي</div>
+      </div>
+      <div class="cta">عرض التفاصيل ←</div>
+    `;
+    grid.appendChild(card);
+  });
+}
+
+boot();
+</script>
+</body>
+</html>
