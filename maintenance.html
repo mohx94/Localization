@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>هائل لصيانة السيارات — لوحة التوطين</title>
 <link rel="stylesheet" href="assets/style.css">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+<script src="assets/vendor/xlsx.full.min.js"></script>
+<script src="assets/vendor/chart.umd.js"></script>
 </head>
 <body>
 
@@ -236,7 +236,7 @@ function renderCharts(){
     ['chart-nat','chart-split','chart-jobs'].forEach(id=>{
       const el = document.getElementById(id);
       if(el && el.parentElement){
-        el.parentElement.innerHTML = '<div style="padding:30px;text-align:center;color:var(--ink-soft);font-size:13px;">تعذر تحميل مكتبة الرسوم البيانية (Chart.js) — تحقق من اتصال الإنترنت أو أن الشبكة لا تحجب cdnjs.cloudflare.com. باقي بيانات الصفحة (الجداول والنسب) تعمل بشكل طبيعي.</div>';
+        el.parentElement.innerHTML = '<div style="padding:30px;text-align:center;color:var(--ink-soft);font-size:13px;">تعذر تحميل مكتبة الرسوم البيانية محلياً. تأكد من رفع مجلد assets/vendor كاملاً (بما فيه chart.umd.js) للمستودع. باقي بيانات الصفحة (الجداول والنسب) تعمل بشكل طبيعي.</div>';
       }
     });
     return;
