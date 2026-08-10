@@ -135,15 +135,6 @@ function renderAlerts(stats){
     });
   });
 
-  list.insertAdjacentHTML('beforeend', `
-    <div class="alert warn">
-      <span class="ico">🏬</span>
-      <div class="body">
-        <strong>${OUTLET_DECISION.title}</strong>
-        <span>${OUTLET_DECISION.decree} — نشاط بيع مواد البناء والرخام والسيراميك مدرج صراحة ضمن هذا القرار بنسبة توطين ${OUTLET_DECISION.pct}% لكل منفذ بيع يعمل به ${OUTLET_DECISION.minEmployees} عاملين فأكثر بالوردية الواحدة. راجع تفاصيل المطابقة في صفحة كل شركة.</span>
-      </div>
-    </div>`);
-
   if(!anyDecisionIssue){
     list.insertAdjacentHTML('beforeend', `
       <div class="alert ok">

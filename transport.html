@@ -278,7 +278,6 @@ function renderCharts(){
 }
 
 function renderDecisions(){
-  // تم استبعاد قرارات منافذ البيع من لوحة المخالفات الإلكترونية لأنها تتطلب تحققاً ميدانياً.
   const tbody = document.getElementById('decisions-table-body');
   tbody.innerHTML = PROFESSION_DECISIONS.map((d, i) => {
     const r = getDecisionDisplay(STATS, d, WORKBOOK);
