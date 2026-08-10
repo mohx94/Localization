@@ -57,7 +57,22 @@
       <span class="hint">مطابقة تلقائية بين مسميات موظفيكم وقرارات التوطين المهني الرسمية</span>
     </div>
     <div id="outlet-decision-alert"></div>
-    <div class="guide-grid" id="decisions-grid" style="grid-template-columns:repeat(2,1fr);"></div>
+    <div class="table-card">
+      <div class="table-scroll" style="max-height:none;">
+        <table class="decisions-table">
+          <thead>
+            <tr>
+              <th>المجموعة المهنية</th>
+              <th>نسبة التوطين المطلوبة</th>
+              <th>القرار الوزاري</th>
+              <th>الالتزام بالتوطين</th>
+              <th>التفاصيل</th>
+            </tr>
+          </thead>
+          <tbody id="decisions-table-body"></tbody>
+        </table>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -277,30 +292,56 @@ function renderDecisions(){
       </div>`;
   }
 
-  const grid = document.getElementById('decisions-grid');
-  grid.innerHTML = PROFESSION_DECISIONS.map(d => {
+  const tbody = document.getElementById('decisions-table-body');
+  tbody.innerHTML = PROFESSION_DECISIONS.map((d, i) => {
     const r = computeDecisionCompliance(STATS, d);
-    let statusHtml, cardStyle;
+    let pillHtml;
     if(!r.applicable){
-      statusHtml = `<span style="color:var(--ink-soft);font-weight:700;">لا ينطبق حالياً</span> <span style="font-size:12px;color:var(--ink-soft);">(${r.totalMatched} فقط في هذه المهن، والحد الأدنى ${d.minEmployees})</span>`;
-      cardStyle = 'border-inline-start:4px solid var(--line);';
+      pillHtml = `<span class="pill na">لا ينطبق حالياً</span>`;
     } else if(r.compliant){
-      statusHtml = `<span style="color:var(--band-high);font-weight:700;">✓ ملتزم</span> <span style="font-size:12px;color:var(--ink-soft);">(${r.saudiMatched} سعودي من ${r.totalMatched})</span>`;
-      cardStyle = 'border-inline-start:4px solid var(--band-high);';
+      pillHtml = `<span class="pill compliant">✓ ملتزمة بالتوطين</span>`;
     } else {
-      statusHtml = `<span style="color:var(--band-red);font-weight:700;">يحتاج ${r.gap} سعودي إضافي</span> <span style="font-size:12px;color:var(--ink-soft);">(${r.saudiMatched} من ${r.totalMatched}, المطلوب ${r.requiredCount})</span>`;
-      cardStyle = 'border-inline-start:4px solid var(--band-red);';
+      pillHtml = `<span class="pill gap">تحتاج ${r.gap} سعودي</span>`;
     }
-    return `
-      <div class="guide-card" style="${cardStyle}">
-        <div class="n">${d.pct}% مطلوبة</div>
-        <h4>${d.title}</h4>
-        <p style="margin-bottom:8px;">${d.decree} — سريان الإلزام: ${d.effective}</p>
-        <p style="margin-bottom:10px;">${statusHtml}</p>
-        ${r.jobsFound.length ? `<p style="font-size:12px;color:var(--ink-soft);">المهن الموجودة لديكم: ${r.jobsFound.join('، ')}</p>` : `<p style="font-size:12px;color:var(--ink-soft);">لا توجد مهن مطابقة في ملف بياناتكم حالياً</p>`}
-        ${d.note ? `<p style="font-size:11.5px;color:var(--ink-soft);margin-top:8px;border-top:1px dashed var(--line);padding-top:8px;">${d.note}</p>` : ''}
+
+    const remaining = r.applicable ? Math.max(0, r.requiredCount - r.saudiMatched) : 0;
+
+    const detailBox = `
+      <div class="detail-meta">
+        <div><b>المنشأة:</b> ${STATS.cfg.name} (${STATS.cfg.id})</div>
+        <div><b>المجموعة المهنية:</b> ${d.title} — <b>القرار:</b> ${d.decree}</div>
+        <div><b>سريان الإلزام:</b> ${d.effective}${d.note ? ' — ' + d.note : ''}</div>
+        <div style="margin-top:6px;"><b>المهن المطابقة في ملفكم:</b> ${r.jobsFound.length ? r.jobsFound.join('، ') : 'لا توجد مهن مطابقة حالياً'}</div>
+      </div>
+      <div class="detail-mini-grid">
+        <div class="detail-mini"><div class="v num">${r.totalMatched}</div><div class="l">إجمالي العاملين بالمهنة</div></div>
+        <div class="detail-mini"><div class="v num">${r.saudiMatched}</div><div class="l">سعوديون حالياً</div></div>
+        <div class="detail-mini"><div class="v num">${r.nonSaudiMatched}</div><div class="l">غير سعوديين</div></div>
+        <div class="detail-mini"><div class="v num">${r.requiredCount}</div><div class="l">عدد السعوديين المطلوب</div></div>
+        <div class="detail-mini"><div class="v num">${r.saudiMatched}</div><div class="l">عدد السعوديين الفعلي</div></div>
+        <div class="detail-mini"><div class="v num" style="color:${remaining>0?'var(--band-red)':'var(--band-high)'}">${remaining}</div><div class="l">عدد السعوديين المتبقي</div></div>
       </div>`;
+
+    return `
+      <tr>
+        <td>${d.title}</td>
+        <td class="num">${d.pct}</td>
+        <td style="color:var(--ink-soft);font-size:12.5px;">${d.decree}</td>
+        <td>${pillHtml}</td>
+        <td><span class="detail-link" onclick="toggleDecisionDetail(${i})">تفاصيل ▾</span></td>
+      </tr>
+      <tr class="decision-detail-row" id="decision-detail-row-${i}" style="display:none;">
+        <td colspan="5">
+          <div class="decision-detail-box open" id="decision-detail-${i}">${detailBox}</div>
+        </td>
+      </tr>`;
   }).join('');
+}
+
+function toggleDecisionDetail(i){
+  const row = document.getElementById('decision-detail-row-' + i);
+  if(!row) return;
+  row.style.display = row.style.display === 'none' ? 'table-row' : 'none';
 }
 
 function renderJobLocalization(){
