@@ -279,15 +279,23 @@ function renderCharts(){
 }
 
 function renderDecisions(){
-  // تنبيه قرار منافذ البيع (يخص جميع الشركات نظراً لنشاط بيع مواد البناء والمقاولات)
+  // قرار منافذ البيع يطبّق فقط على الكيانات/المنافذ التي تمارس نشاطاً مستهدفاً فعلياً.
   const oc = document.getElementById('outlet-decision-alert');
   if(oc){
-    oc.innerHTML = `
+    const outletApplicable = isOutletDecisionApplicable(STATS);
+    oc.innerHTML = outletApplicable ? `
       <div class="alert warn">
         <span class="ico">🏬</span>
         <div class="body">
           <strong>${OUTLET_DECISION.title} — ${OUTLET_DECISION.decree}</strong>
-          <span>نسبة توطين مستهدفة ${OUTLET_DECISION.pct}% لكل منفذ بيع (فرع/معرض) يعمل به ${OUTLET_DECISION.minEmployees} عاملين فأكثر بالوردية الواحدة — تُحسب لكل منفذ على حدة وليس على إجمالي الشركة. ${OUTLET_DECISION.note}</span>
+          <span>المستهدف ${OUTLET_DECISION.pct}% لكل منفذ بيع يعمل به ${OUTLET_DECISION.minEmployees} عاملين فأكثر خلال الوردية الواحدة. الحساب يكون على مستوى المنفذ/الوردية وليس إجمالي الكيان. ${OUTLET_DECISION.note}</span>
+        </div>
+      </div>` : `
+      <div class="alert">
+        <span class="ico">ℹ</span>
+        <div class="body">
+          <strong>قرار منافذ البيع — غير محسوب على هذا الكيان تلقائياً</strong>
+          <span>لا يتم افتراض انطباق قرار منافذ بيع مواد الإعمار والبناء على هذا الكيان. يعتمد الانطباق على النشاط الفعلي لكل منفذ.</span>
         </div>
       </div>`;
   }

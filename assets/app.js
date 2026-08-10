@@ -141,6 +141,7 @@ const OUTLET_DECISION = {
   decree: 'قرار وزاري رقم 16655 وتاريخ 1446/2/7هـ',
   pct: 70,
   minEmployees: 4,
+  applicableCompanyKeys: ['materials'],
   note: 'نشاط "بيع مواد البناء والرخام والسيراميك والبورسلان جملة وتجزئة" مدرج صراحة ضمن هذا القرار. تطبَّق النسبة على كل منفذ بيع (فرع/معرض) يعمل به 4 عاملين فأكثر بالوردية الواحدة، وليس على إجمالي الشركة. لا يُسمح لعمال النظافة/التحميل بالبيع، وتُحسب نسبتهم بحد أقصى 20% في المنافذ الأكبر من 5 عاملين.'
 };
 
@@ -152,6 +153,19 @@ function normalizeAr(s){
     .replace(/ى/g, 'ي')
     .replace(/ة/g, 'ه')
     .replace(/\s+/g, ' ');
+}
+
+// التقريب الرسمي في قرارات التوطين: 0.49 فأقل للأسفل، و0.5 فأعلى للأعلى.
+function officialRound(value) {
+  return Math.floor(Number(value) + 0.5);
+}
+
+function requiredSaudiCount(total, pct) {
+  return officialRound(Number(total || 0) * (Number(pct || 0) / 100));
+}
+
+function isOutletDecisionApplicable(stats) {
+  return !!(stats && stats.cfg && OUTLET_DECISION.applicableCompanyKeys.includes(stats.cfg.key === 'مواد_البناء' ? 'materials' : stats.cfg.key));
 }
 
 function computeDecisionCompliance(stats, decision) {
@@ -169,11 +183,11 @@ function computeDecisionCompliance(stats, decision) {
 
   const totalMatched = saudiMatched + nonSaudiMatched;
   const applicable = totalMatched >= decision.minEmployees;
-  const requiredCount = Math.round(totalMatched * (decision.pct / 100));
+  const requiredCount = requiredSaudiCount(totalMatched, decision.pct);
   const gap = Math.max(0, requiredCount - saudiMatched);
   const jobsFound = [...new Set(matchedJobs.map(p => p.job))];
 
-  return { decision, totalMatched, saudiMatched, nonSaudiMatched, applicable, requiredCount, gap, jobsFound, compliant: gap === 0 && totalMatched > 0 };
+  return { decision, totalMatched, saudiMatched, nonSaudiMatched, applicable, requiredCount, gap, jobsFound, compliant: applicable && gap === 0 };
 }
 
 let WORKBOOK = null;
@@ -188,11 +202,14 @@ function loadOfficialOverrides(wb) {
     const decision = String(r[1] ?? '').trim();
     const total = r[2], saudi = r[3], nonSaudi = r[4];
     if (!company || !decision || total === '' || total === undefined) return;
+    const totalN = Number(total) || 0;
+    const saudiN = Number(saudi) || 0;
+    const nonSaudiN = Number(nonSaudi) || 0;
+    const mismatch = (saudi !== '' && nonSaudi !== '' && totalN !== saudiN + nonSaudiN);
     OFFICIAL_OVERRIDES[company + '|' + decision] = {
-      total: Number(total) || 0,
-      saudi: Number(saudi) || 0,
-      nonSaudi: Number(nonSaudi) || 0,
-      note: String(r[5] ?? '').trim()
+      total: totalN, saudi: saudiN, nonSaudi: nonSaudiN,
+      note: String(r[5] ?? '').trim(),
+      mismatch
     };
   });
   return OFFICIAL_OVERRIDES;
@@ -213,13 +230,13 @@ function getDecisionDisplay(stats, decision, wb) {
   const override = overrides[key];
 
   if (override) {
-    const requiredCount = Math.round(override.total * (decision.pct / 100));
+    const requiredCount = requiredSaudiCount(override.total, decision.pct);
     const gap = Math.max(0, requiredCount - override.saudi);
     const applicable = override.total >= decision.minEmployees;
     return {
       decision, totalMatched: override.total, saudiMatched: override.saudi, nonSaudiMatched: override.nonSaudi,
-      applicable, requiredCount, gap, jobsFound: [], compliant: gap === 0 && override.total > 0,
-      isOfficial: true, officialNote: override.note
+      applicable, requiredCount, gap, jobsFound: [], compliant: applicable && gap === 0,
+      isOfficial: true, officialNote: override.note, officialMismatch: override.mismatch
     };
   }
   const r = computeDecisionCompliance(stats, decision);
