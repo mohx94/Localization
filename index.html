@@ -98,8 +98,8 @@ async function boot(){
     const stats = await getAllStats();
     document.getElementById('updated-hint').textContent = 'آخر تحميل: ' + new Date().toLocaleString('ar-SA');
 
-    renderAlerts(stats);
-    renderCompanyGrid(stats);
+    try{ renderAlerts(stats); }catch(e){ console.error('فشل عرض التنبيهات', e); }
+    try{ renderCompanyGrid(stats); }catch(e){ console.error('فشل عرض بطاقات الشركات', e); }
   }catch(e){
     document.getElementById('alerts-list').innerHTML =
       `<div class="alert crit"><span class="ico">⚠</span><div class="body"><strong>تعذر تحميل البيانات</strong><span>${e.message}. تأكد من وجود data/nitaqat.xlsx بجانب الموقع.</span></div></div>`;

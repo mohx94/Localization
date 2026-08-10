@@ -159,18 +159,26 @@
 const COMPANY_KEY = 'materials';
 let STATS = null;
 
+function safeRun(fn, label){
+  try{
+    fn();
+  }catch(e){
+    console.error('فشل عرض: ' + label, e);
+  }
+}
+
 async function boot(){
   try{
     STATS = await getCompanyStats(COMPANY_KEY);
     document.getElementById('loading').style.display='none';
     document.getElementById('content').style.display='block';
-    renderGaugeSection();
-    renderRulerSection();
-    renderStats();
-    renderCharts();
-    renderJobLocalization();
-    renderDecisions();
-    renderTable(STATS.all);
+    safeRun(renderGaugeSection, 'العداد');
+    safeRun(renderRulerSection, 'مسطرة النطاقات');
+    safeRun(renderStats, 'الإحصائيات');
+    safeRun(renderCharts, 'الرسوم البيانية');
+    safeRun(renderJobLocalization, 'توطين المهن');
+    safeRun(renderDecisions, 'قرارات التوطين');
+    safeRun(() => renderTable(STATS.all), 'القائمة التفصيلية');
 
     document.getElementById('search-box').addEventListener('input', applyFilters);
     document.getElementById('filter-group').addEventListener('change', applyFilters);
@@ -215,6 +223,15 @@ function renderStats(){
 }
 
 function renderCharts(){
+  if(typeof Chart === 'undefined'){
+    ['chart-nat','chart-split','chart-jobs'].forEach(id=>{
+      const el = document.getElementById(id);
+      if(el && el.parentElement){
+        el.parentElement.innerHTML = '<div style="padding:30px;text-align:center;color:var(--ink-soft);font-size:13px;">تعذر تحميل مكتبة الرسوم البيانية (Chart.js) — تحقق من اتصال الإنترنت أو أن الشبكة لا تحجب cdnjs.cloudflare.com. باقي بيانات الصفحة (الجداول والنسب) تعمل بشكل طبيعي.</div>';
+      }
+    });
+    return;
+  }
   const natEntries = topEntries(STATS.natCounts, 8);
   new Chart(document.getElementById('chart-nat'), {
     type: 'bar',
