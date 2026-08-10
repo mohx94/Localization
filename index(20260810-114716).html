@@ -135,14 +135,7 @@ function renderAlerts(stats){
     });
   });
 
-  list.insertAdjacentHTML('beforeend', `
-    <div class="alert warn">
-      <span class="ico">🏬</span>
-      <div class="body">
-        <strong>${OUTLET_DECISION.title}</strong>
-        <span>${OUTLET_DECISION.decree} — ينطبق على منافذ البيع التي تمارس نشاطاً مستهدفاً فعلياً. في لوحة المجموعة تم ربطه بكيان مواد البناء فقط، ويجب احتسابه لكل منفذ/وردية على حدة عند توفر بيانات الفروع.</span>
-      </div>
-    </div>`);
+
 
   if(!anyDecisionIssue){
     list.insertAdjacentHTML('beforeend', `

@@ -56,7 +56,6 @@
       <h2>🎯 الالتزام بقرارات توطين المهن (وزارة الموارد البشرية)</h2>
       <span class="hint">مطابقة تلقائية بين مسميات موظفيكم وقرارات التوطين المهني الرسمية</span>
     </div>
-    <div id="outlet-decision-alert"></div>
     <div class="table-card">
       <div class="table-scroll" style="max-height:none;">
         <table class="decisions-table">
@@ -279,27 +278,7 @@ function renderCharts(){
 }
 
 function renderDecisions(){
-  // قرار منافذ البيع يطبّق فقط على الكيانات/المنافذ التي تمارس نشاطاً مستهدفاً فعلياً.
-  const oc = document.getElementById('outlet-decision-alert');
-  if(oc){
-    const outletApplicable = isOutletDecisionApplicable(STATS);
-    oc.innerHTML = outletApplicable ? `
-      <div class="alert warn">
-        <span class="ico">🏬</span>
-        <div class="body">
-          <strong>${OUTLET_DECISION.title} — ${OUTLET_DECISION.decree}</strong>
-          <span>المستهدف ${OUTLET_DECISION.pct}% لكل منفذ بيع يعمل به ${OUTLET_DECISION.minEmployees} عاملين فأكثر خلال الوردية الواحدة. الحساب يكون على مستوى المنفذ/الوردية وليس إجمالي الكيان. ${OUTLET_DECISION.note}</span>
-        </div>
-      </div>` : `
-      <div class="alert">
-        <span class="ico">ℹ</span>
-        <div class="body">
-          <strong>قرار منافذ البيع — غير محسوب على هذا الكيان تلقائياً</strong>
-          <span>لا يتم افتراض انطباق قرار منافذ بيع مواد الإعمار والبناء على هذا الكيان. يعتمد الانطباق على النشاط الفعلي لكل منفذ.</span>
-        </div>
-      </div>`;
-  }
-
+  // تم استبعاد قرارات منافذ البيع من لوحة المخالفات الإلكترونية لأنها تتطلب تحققاً ميدانياً.
   const tbody = document.getElementById('decisions-table-body');
   tbody.innerHTML = PROFESSION_DECISIONS.map((d, i) => {
     const r = getDecisionDisplay(STATS, d, WORKBOOK);
