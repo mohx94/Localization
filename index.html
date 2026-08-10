@@ -33,6 +33,15 @@
   </div>
 </section>
 
+<section id="risk-summary-section">
+  <div class="wrap">
+    <div class="section-head"><h2>🚨 ملخص المخالفات الإلكترونية</h2><span class="hint">ترتيب حسب أولوية المعالجة</span></div>
+    <div id="risk-summary-kpis"></div>
+    <div id="risk-summary-board" class="risk-board"></div>
+    <div id="upcoming-board"></div>
+  </div>
+</section>
+
 <section id="alerts-section">
   <div class="wrap">
     <div class="section-head">
@@ -67,8 +76,8 @@
     <div class="guide-grid">
       <div class="guide-card">
         <div class="n">تنبيه</div>
-        <h4>راقب النطاق الأحمر فوراً</h4>
-        <p>أي كيان في النطاق الأحمر يواجه قيوداً على استقدام موظفين جدد وتجديد رخص العمل. يُنصح برفع نسبة التوطين قبل أي إجراء استقدام جديد.</p>
+        <h4>راقب المخالفات الإلكترونية أولاً</h4>
+        <p>ابدأ بالقرارات التي تظهر باللون الأحمر في لوحة الإنذار، ثم راجع أرقام قوى والمسميات المسجلة قبل اتخاذ إجراء.</p>
       </div>
       <div class="guide-card">
         <div class="n">تحديث دوري</div>
@@ -97,119 +106,47 @@ async function boot(){
   try{
     const stats = await getAllStats();
     document.getElementById('updated-hint').textContent = 'آخر تحميل: ' + new Date().toLocaleString('ar-SA');
-
-    try{ renderAlerts(stats); }catch(e){ console.error('فشل عرض التنبيهات', e); }
-    try{ renderCompanyGrid(stats); }catch(e){ console.error('فشل عرض بطاقات الشركات', e); }
+    renderRiskSummary(stats);
+    renderAlerts(stats);
+    renderCompanyGrid(stats);
   }catch(e){
-    document.getElementById('alerts-list').innerHTML =
-      `<div class="alert crit"><span class="ico">⚠</span><div class="body"><strong>تعذر تحميل البيانات</strong><span>${e.message}. تأكد من وجود data/nitaqat.xlsx بجانب الموقع.</span></div></div>`;
+    document.getElementById('alerts-list').innerHTML = `<div class="alert crit"><span class="ico">⚠</span><div class="body"><strong>تعذر تحميل البيانات</strong><span>${e.message}. تأكد من وجود data/nitaqat.xlsx.</span></div></div>`;
     console.error(e);
   }
 }
 
+function renderRiskSummary(stats){
+  injectComplianceStyles();
+  const companySummaries=Object.values(stats).map(s=>({s,summary:getCompanyRiskSummary(s)}));
+  const critical=companySummaries.flatMap(x=>x.summary.critical.map(r=>({company:x.s,r})));
+  const review=companySummaries.flatMap(x=>x.summary.review.map(r=>({company:x.s,r})));
+  const upcoming=companySummaries.flatMap(x=>x.summary.upcoming.map(e=>({company:x.s,e}))).sort((a,b)=>a.e.days-b.e.days);
+  const totalGap=critical.reduce((n,x)=>n+x.r.gap,0);
+  document.getElementById('risk-summary-kpis').innerHTML=`<div class="risk-kpis"><div class="risk-kpi"><b>${critical.length}</b><small>مخالفات محتملة الآن</small></div><div class="risk-kpi"><b>${totalGap}</b><small>فجوة سعوديين مطلوبة</small></div><div class="risk-kpi"><b>${review.length}</b><small>حالات تحتاج تدقيق</small></div><div class="risk-kpi"><b>${upcoming.length}</b><small>تغييرات خلال 180 يوم</small></div></div>`;
+
+  const board=document.getElementById('risk-summary-board');
+  const items=[...critical.map(x=>({...x,key:'critical'})),...review.map(x=>({...x,key:'review'}))];
+  board.innerHTML=items.length?items.map(x=>{
+    const r=x.r,st=getDecisionStatus(r);
+    return `<a href="${x.company.cfg.page}#electronic-risk-panel" class="risk-row ${st.key}" style="text-decoration:none;color:inherit"><div><b>${x.company.cfg.name}</b><div class="source-note">${r.decision.title}</div></div><div><span class="risk-badge ${st.key}">${st.icon} ${st.label}</span></div><div><b>${r.rule.pct}%</b><div class="source-note">${r.saudiMatched} سعودي من ${r.totalMatched}</div></div><div><b>${r.gap?('تحتاج '+r.gap+' سعودي'):'راجع الأرقام'}</b><div class="source-note">${r.isOfficial?'قوى':'تقدير تلقائي'}</div></div></a>`;
+  }).join(''):`<div class="alert ok"><span class="ico">✓</span><div class="body"><strong>لا توجد مخالفات إلكترونية محتملة ظاهرة الآن</strong><span>اللوحة تركز على قرارات توطين المهن، وليس مخالفات منافذ البيع الميدانية.</span></div></div>`;
+
+  document.getElementById('upcoming-board').innerHTML=upcoming.length?`<div style="margin-top:18px"><div class="section-head"><h3 style="font-size:16px">📅 العد التنازلي للتغييرات القادمة</h3></div>${upcoming.map(x=>`<div class="risk-row upcoming"><div><b>${x.company.cfg.name}</b><div class="source-note">${x.e.title} — ${x.e.detail}</div></div><div><span class="risk-badge upcoming">⏳ قادم</span></div><div><b class="countdown">${x.e.days===0?'اليوم':x.e.days+' يوم'}</b></div><div>${fmtDate(x.e.date)}</div></div>`).join('')}</div>`:'';
+}
+
 function renderAlerts(stats){
-  const list = document.getElementById('alerts-list');
-  list.innerHTML = '';
-
-  // ===== الأولوية 1: قرارات توطين المهن (التركيز الأساسي) =====
-  const decisionHeader = document.createElement('div');
-  decisionHeader.style.cssText = 'font-size:12.5px;font-weight:700;color:var(--steel);margin-bottom:8px;';
-  decisionHeader.textContent = '🎯 قرارات توطين المهن — الأولوية';
-  list.appendChild(decisionHeader);
-
-  let anyDecisionIssue = false;
-  Object.values(stats).forEach(s=>{
-    PROFESSION_DECISIONS.forEach(d=>{
-      const r = getDecisionDisplay(s, d, WORKBOOK);
-      if(r.applicable && !r.compliant){
-        anyDecisionIssue = true;
-        list.insertAdjacentHTML('beforeend', `
-          <div class="alert crit">
-            <span class="ico">⚠</span>
-            <div class="body">
-              <strong>${s.cfg.name} — ${d.title} (مطلوب ${d.pct}%)</strong>
-              <span>يحتاج ${r.gap} سعودي إضافي في هذه المهن (حالياً ${r.saudiMatched} من ${r.totalMatched}). ${d.decree}</span>
-            </div>
-          </div>`);
-      }
-    });
-  });
-
-  if(!anyDecisionIssue){
-    list.insertAdjacentHTML('beforeend', `
-      <div class="alert ok">
-        <span class="ico">✓</span>
-        <div class="body"><strong>لا توجد فجوات حرجة في قرارات توطين المهن المطبّقة حالياً</strong><span>راجع صفحة كل شركة لتفاصيل كل قرار.</span></div>
-      </div>`);
-  }
-
-  // ===== الأولوية 2: نطاقات (مرجعي فقط) =====
-  const bandHeader = document.createElement('div');
-  bandHeader.style.cssText = 'font-size:12.5px;font-weight:700;color:var(--ink-soft);margin:16px 0 8px;';
-  bandHeader.textContent = '📊 نطاقات نطاقات — للمرجعية';
-  list.appendChild(bandHeader);
-
-  let anyBand = false;
-  Object.values(stats).forEach(s=>{
-    const isLowestBand = s.band === s.cfg.bands[0];
-    if(isLowestBand){
-      anyBand = true;
-      list.insertAdjacentHTML('beforeend', `
-        <div class="alert warn" style="opacity:.85;">
-          <span class="ico">◐</span>
-          <div class="body">
-            <strong>${s.cfg.name} — نطاق ${s.band.name} (${s.pct.toFixed(1)}%)</strong>
-            <span>مرجعي فقط — راجع منصة قوى للرقم المعتمد رسمياً.</span>
-          </div>
-        </div>`);
-    }
-  });
-  if(!anyBand){
-    list.insertAdjacentHTML('beforeend', `
-      <div class="alert info" style="opacity:.85;">
-        <span class="ico">ℹ</span>
-        <div class="body"><strong>لا توجد كيانات في النطاق الأحمر حسب هذا الملف</strong><span>مرجعي فقط.</span></div>
-      </div>`);
-  }
+  const list=document.getElementById('alerts-list'); list.innerHTML='';
+  const summaries=Object.values(stats).map(s=>({s,summary:getCompanyRiskSummary(s)}));
+  const clean=summaries.filter(x=>x.summary.riskCount===0).length;
+  list.innerHTML=`<div class="alert info"><span class="ico">ℹ</span><div class="body"><strong>هدف هذه اللوحة: الإنذار المبكر للمخالفات الإلكترونية</strong><span>المطابقة بالمسميات تقديرية؛ أرقام قوى الرسمية لها الأولوية. قرارات منافذ البيع مستبعدة من الإنذار لأنها تتطلب تحققاً ميدانياً.</span></div></div><div class="alert ${clean===summaries.length?'ok':'warn'}"><span class="ico">${clean===summaries.length?'✓':'◐'}</span><div class="body"><strong>${clean} من ${summaries.length} كيانات بدون خطر إلكتروني ظاهر</strong><span>راجع الملخص أعلاه للحالات التي تحتاج إجراء.</span></div></div>`;
 }
 
 function renderCompanyGrid(stats){
-  const grid = document.getElementById('company-grid');
-  grid.innerHTML = '';
+  const grid=document.getElementById('company-grid'); grid.innerHTML='';
   Object.values(stats).forEach(s=>{
-    const decisionResults = PROFESSION_DECISIONS.map(d => getDecisionDisplay(s, d, WORKBOOK)).filter(r => r.applicable);
-    const gaps = decisionResults.filter(r => !r.compliant);
-    const totalGapPeople = gaps.reduce((sum, r) => sum + r.gap, 0);
-
-    const card = document.createElement('a');
-    card.className = 'co-card';
-    card.href = s.cfg.page;
-    card.style.borderTopColor = getComputedStyle(document.documentElement).getPropertyValue(s.band.color.replace('var(','').replace(')',''));
-    card.innerHTML = `
-      <div>
-        <div class="co-name">${s.cfg.name}</div>
-        <div class="co-id">سجل: ${s.cfg.id}</div>
-      </div>
-      <div>
-        ${gaps.length
-          ? `<div class="co-pct num" style="color:var(--band-red);font-size:32px;">${gaps.length} قرار</div>
-             <div style="font-size:12.5px;color:var(--ink-soft);margin-top:2px;">يحتاج ${totalGapPeople} سعودي إضافي لسد فجوات التوطين المهني</div>`
-          : `<div class="co-pct num" style="color:var(--band-high);font-size:32px;">✓ ملتزم</div>
-             <div style="font-size:12.5px;color:var(--ink-soft);margin-top:2px;">لا فجوات في قرارات توطين المهن المطبّقة</div>`
-        }
-      </div>
-      <div class="co-counts">
-        <div><b class="num">${s.total}</b>الإجمالي</div>
-        <div><b class="num">${s.saudiCount}</b>سعودي</div>
-        <div><b class="num">${s.nonSaudiCount}</b>غير سعودي</div>
-      </div>
-      <div style="display:flex;align-items:center;justify-content:space-between;border-top:1px dashed var(--line);padding-top:10px;">
-        <span class="co-band-label" style="font-size:11px;padding:3px 8px;background:color-mix(in srgb, ${s.band.color} 14%, white); color:${s.band.color}">
-          <span class="dot" style="background:${s.band.color}"></span>نطاقات: ${s.pct.toFixed(1)}% (${s.band.name})
-        </span>
-        <span class="cta" style="margin:0;">التفاصيل ←</span>
-      </div>
-    `;
+    const sm=getCompanyRiskSummary(s);
+    const card=document.createElement('a'); card.className='co-card'; card.href=s.cfg.page;
+    card.innerHTML=`<div><div class="co-name">${s.cfg.name}</div><div class="co-id">سجل: ${s.cfg.id}</div></div><div>${sm.riskCount?`<div class="co-pct num" style="color:var(--band-red);font-size:30px;">${sm.riskCount} تنبيه</div><div style="font-size:12px;color:var(--ink-soft)">فجوة حالية ${sm.totalGap} سعودي</div>`:`<div class="co-pct num" style="color:var(--band-high);font-size:30px;">✓ سليم</div><div style="font-size:12px;color:var(--ink-soft)">لا خطر إلكتروني ظاهر</div>`}</div><div class="co-counts"><div><b class="num">${s.total}</b>الإجمالي</div><div><b class="num">${s.saudiCount}</b>سعودي</div><div><b class="num">${s.nonSaudiCount}</b>غير سعودي</div></div><div style="display:flex;justify-content:space-between;border-top:1px dashed var(--line);padding-top:10px"><span class="co-band-label">نطاقات: ${s.pct.toFixed(1)}% (${s.band.name})</span><span class="cta">التفاصيل ←</span></div>`;
     grid.appendChild(card);
   });
 }
