@@ -294,7 +294,7 @@ function renderDecisions(){
 
   const tbody = document.getElementById('decisions-table-body');
   tbody.innerHTML = PROFESSION_DECISIONS.map((d, i) => {
-    const r = computeDecisionCompliance(STATS, d);
+    const r = getDecisionDisplay(STATS, d, WORKBOOK);
     let pillHtml;
     if(!r.applicable){
       pillHtml = `<span class="pill na">لا ينطبق حالياً</span>`;
@@ -303,6 +303,9 @@ function renderDecisions(){
     } else {
       pillHtml = `<span class="pill gap">تحتاج ${r.gap} سعودي</span>`;
     }
+    const sourceTag = r.isOfficial
+      ? `<span style="display:inline-block;margin-inline-start:6px;font-size:10.5px;font-weight:700;color:var(--band-high);background:#E7F1E1;padding:2px 8px;border-radius:10px;">رقم معتمد من قوى</span>`
+      : `<span style="display:inline-block;margin-inline-start:6px;font-size:10.5px;font-weight:700;color:var(--vein);background:#FBF3E3;padding:2px 8px;border-radius:10px;">تقدير تلقائي</span>`;
 
     const remaining = r.applicable ? Math.max(0, r.requiredCount - r.saudiMatched) : 0;
 
@@ -311,7 +314,11 @@ function renderDecisions(){
         <div><b>المنشأة:</b> ${STATS.cfg.name} (${STATS.cfg.id})</div>
         <div><b>المجموعة المهنية:</b> ${d.title} — <b>القرار:</b> ${d.decree}</div>
         <div><b>سريان الإلزام:</b> ${d.effective}${d.note ? ' — ' + d.note : ''}</div>
-        <div style="margin-top:6px;"><b>المهن المطابقة في ملفكم:</b> ${r.jobsFound.length ? r.jobsFound.join('، ') : 'لا توجد مهن مطابقة حالياً'}</div>
+        <div style="margin-top:6px;">${sourceTag}</div>
+        ${r.isOfficial
+          ? `<div style="margin-top:6px;">${r.officialNote ? '<b>ملاحظة:</b> ' + r.officialNote : 'هذا الرقم مُدخل يدوياً من صفحة توطين المهن في قوى، وهو المرجع المعتمد.'}</div>`
+          : `<div style="margin-top:6px;"><b>المهن المطابقة تلقائياً في ملفكم (تقديرية):</b> ${r.jobsFound.length ? r.jobsFound.join('، ') : 'لا توجد مهن مطابقة حالياً'}. قد تختلف عن رمز المهنة الرسمي المسجل بالتأمينات — للدقة أدخل الرقم الرسمي في ورقة "ارقام_قوى_الرسمية" بملف الإكسل.</div>`
+        }
       </div>
       <div class="detail-mini-grid">
         <div class="detail-mini"><div class="v num">${r.totalMatched}</div><div class="l">إجمالي العاملين بالمهنة</div></div>

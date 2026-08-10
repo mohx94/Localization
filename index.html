@@ -120,7 +120,7 @@ function renderAlerts(stats){
   let anyDecisionIssue = false;
   Object.values(stats).forEach(s=>{
     PROFESSION_DECISIONS.forEach(d=>{
-      const r = computeDecisionCompliance(s, d);
+      const r = getDecisionDisplay(s, d, WORKBOOK);
       if(r.applicable && !r.compliant){
         anyDecisionIssue = true;
         list.insertAdjacentHTML('beforeend', `
@@ -186,7 +186,7 @@ function renderCompanyGrid(stats){
   const grid = document.getElementById('company-grid');
   grid.innerHTML = '';
   Object.values(stats).forEach(s=>{
-    const decisionResults = PROFESSION_DECISIONS.map(d => computeDecisionCompliance(s, d)).filter(r => r.applicable);
+    const decisionResults = PROFESSION_DECISIONS.map(d => getDecisionDisplay(s, d, WORKBOOK)).filter(r => r.applicable);
     const gaps = decisionResults.filter(r => !r.compliant);
     const totalGapPeople = gaps.reduce((sum, r) => sum + r.gap, 0);
 

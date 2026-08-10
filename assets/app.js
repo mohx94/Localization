@@ -177,6 +177,54 @@ function computeDecisionCompliance(stats, decision) {
 }
 
 let WORKBOOK = null;
+let OFFICIAL_OVERRIDES = null; // { 'اسم الشركة|القرار': {total, saudi, nonSaudi, note} }
+
+function loadOfficialOverrides(wb) {
+  if (OFFICIAL_OVERRIDES) return OFFICIAL_OVERRIDES;
+  OFFICIAL_OVERRIDES = {};
+  const rows = sheetToRawRows(wb, 'ارقام_قوى_الرسمية');
+  rows.forEach(r => {
+    const company = String(r[0] ?? '').trim();
+    const decision = String(r[1] ?? '').trim();
+    const total = r[2], saudi = r[3], nonSaudi = r[4];
+    if (!company || !decision || total === '' || total === undefined) return;
+    OFFICIAL_OVERRIDES[company + '|' + decision] = {
+      total: Number(total) || 0,
+      saudi: Number(saudi) || 0,
+      nonSaudi: Number(nonSaudi) || 0,
+      note: String(r[5] ?? '').trim()
+    };
+  });
+  return OFFICIAL_OVERRIDES;
+}
+
+function sheetToRawRows(wb, sheetName) {
+  const ws = wb.Sheets[sheetName];
+  if (!ws) return [];
+  const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+  const [header, ...body] = rows;
+  return body.filter(r => r.some(c => String(c).trim() !== ''));
+}
+
+// يرجع نتيجة القرار: يفضّل الرقم الرسمي من قوى إذا موجود، وإلا يرجع للتقدير التلقائي من المسميات الوظيفية
+function getDecisionDisplay(stats, decision, wb) {
+  const overrides = loadOfficialOverrides(wb);
+  const key = stats.cfg.name + '|' + decision.title;
+  const override = overrides[key];
+
+  if (override) {
+    const requiredCount = Math.round(override.total * (decision.pct / 100));
+    const gap = Math.max(0, requiredCount - override.saudi);
+    const applicable = override.total >= decision.minEmployees;
+    return {
+      decision, totalMatched: override.total, saudiMatched: override.saudi, nonSaudiMatched: override.nonSaudi,
+      applicable, requiredCount, gap, jobsFound: [], compliant: gap === 0 && override.total > 0,
+      isOfficial: true, officialNote: override.note
+    };
+  }
+  const r = computeDecisionCompliance(stats, decision);
+  return { ...r, isOfficial: false };
+}
 
 async function loadWorkbook() {
   if (WORKBOOK) return WORKBOOK;
