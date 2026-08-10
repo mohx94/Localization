@@ -27,16 +27,16 @@
 
 <section class="hero" style="padding-bottom:0;">
   <div class="wrap">
-    <span class="eyebrow">Nitaqat · نطاقات</span>
-    <h1>نسبة التوطين لحظياً عبر كياناتنا الثلاثة</h1>
-    <p class="lead">لوحة تُقرأ مباشرة من ملف بيانات الموظفين — كل تحديث على الإكسل (إضافة، نقل، تغيير مهنة) ينعكس هنا تلقائياً دون أي تدخل يدوي إضافي.</p>
+    <span class="eyebrow">توطين المهن · Nitaqat</span>
+    <h1>الالتزام بتوطين المهن لحظياً عبر كياناتنا الثلاثة</h1>
+    <p class="lead">لوحة تُقرأ مباشرة من ملف بيانات الموظفين، وتقارن مسمياتكم الوظيفية بقرارات وزارة الموارد البشرية الرسمية أولاً، ثم نطاقات نطاقات كمرجع إضافي — كل تحديث على الإكسل ينعكس هنا تلقائياً.</p>
   </div>
 </section>
 
 <section id="alerts-section">
   <div class="wrap">
     <div class="section-head">
-      <h2>تنبيهات وحالة النطاق</h2>
+      <h2>تنبيهات الالتزام</h2>
       <span class="hint" id="updated-hint"></span>
     </div>
     <div id="alerts-list">
@@ -110,33 +110,29 @@ async function boot(){
 function renderAlerts(stats){
   const list = document.getElementById('alerts-list');
   list.innerHTML = '';
-  let any = false;
 
+  // ===== الأولوية 1: قرارات توطين المهن (التركيز الأساسي) =====
+  const decisionHeader = document.createElement('div');
+  decisionHeader.style.cssText = 'font-size:12.5px;font-weight:700;color:var(--steel);margin-bottom:8px;';
+  decisionHeader.textContent = '🎯 قرارات توطين المهن — الأولوية';
+  list.appendChild(decisionHeader);
+
+  let anyDecisionIssue = false;
   Object.values(stats).forEach(s=>{
-    const isLowestBand = s.band === s.cfg.bands[0];
-    const nearNext = s.nextBand && (s.nextBand.min - s.pct) <= 2 && (s.nextBand.min - s.pct) > 0;
-
-    if(isLowestBand){
-      any = true;
-      list.insertAdjacentHTML('beforeend', `
-        <div class="alert crit">
-          <span class="ico">⛔</span>
-          <div class="body">
-            <strong>${s.cfg.name} — في النطاق الأحمر (${s.pct.toFixed(1)}%)</strong>
-            <span>يحتاج ${s.neededForNext} موظف سعودي إضافي (دون تغيير عدد الوافدين) للوصول لأول نطاق أخضر عند ${s.nextBand ? s.nextBand.min : '—'}%.</span>
-          </div>
-        </div>`);
-    } else if(nearNext){
-      any = true;
-      list.insertAdjacentHTML('beforeend', `
-        <div class="alert warn">
-          <span class="ico">◐</span>
-          <div class="body">
-            <strong>${s.cfg.name} — قريب من نطاق أعلى</strong>
-            <span>النسبة الحالية ${s.pct.toFixed(1)}%، ويحتاج ${s.neededForNext} سعودي فقط للوصول إلى «${s.nextBand.name}».</span>
-          </div>
-        </div>`);
-    }
+    PROFESSION_DECISIONS.forEach(d=>{
+      const r = computeDecisionCompliance(s, d);
+      if(r.applicable && !r.compliant){
+        anyDecisionIssue = true;
+        list.insertAdjacentHTML('beforeend', `
+          <div class="alert crit">
+            <span class="ico">⚠</span>
+            <div class="body">
+              <strong>${s.cfg.name} — ${d.title} (مطلوب ${d.pct}%)</strong>
+              <span>يحتاج ${r.gap} سعودي إضافي في هذه المهن (حالياً ${r.saudiMatched} من ${r.totalMatched}). ${d.decree}</span>
+            </div>
+          </div>`);
+      }
+    });
   });
 
   list.insertAdjacentHTML('beforeend', `
@@ -148,26 +144,40 @@ function renderAlerts(stats){
       </div>
     </div>`);
 
-  const platinum = Object.values(stats).filter(s => s.band.name === 'بلاتيني');
-  if(platinum.length){
-    any = true;
-    platinum.forEach(s=>{
-      list.insertAdjacentHTML('beforeend', `
-        <div class="alert ok">
-          <span class="ico">✓</span>
-          <div class="body">
-            <strong>${s.cfg.name} — النطاق البلاتيني</strong>
-            <span>النسبة الحالية ${s.pct.toFixed(1)}%، أعلى مستوى امتثال. حافظ على هذا المستوى عند أي توظيف جديد.</span>
-          </div>
-        </div>`);
-    });
+  if(!anyDecisionIssue){
+    list.insertAdjacentHTML('beforeend', `
+      <div class="alert ok">
+        <span class="ico">✓</span>
+        <div class="body"><strong>لا توجد فجوات حرجة في قرارات توطين المهن المطبّقة حالياً</strong><span>راجع صفحة كل شركة لتفاصيل كل قرار.</span></div>
+      </div>`);
   }
 
-  if(!any){
+  // ===== الأولوية 2: نطاقات (مرجعي فقط) =====
+  const bandHeader = document.createElement('div');
+  bandHeader.style.cssText = 'font-size:12.5px;font-weight:700;color:var(--ink-soft);margin:16px 0 8px;';
+  bandHeader.textContent = '📊 نطاقات نطاقات — للمرجعية';
+  list.appendChild(bandHeader);
+
+  let anyBand = false;
+  Object.values(stats).forEach(s=>{
+    const isLowestBand = s.band === s.cfg.bands[0];
+    if(isLowestBand){
+      anyBand = true;
+      list.insertAdjacentHTML('beforeend', `
+        <div class="alert warn" style="opacity:.85;">
+          <span class="ico">◐</span>
+          <div class="body">
+            <strong>${s.cfg.name} — نطاق ${s.band.name} (${s.pct.toFixed(1)}%)</strong>
+            <span>مرجعي فقط — راجع منصة قوى للرقم المعتمد رسمياً.</span>
+          </div>
+        </div>`);
+    }
+  });
+  if(!anyBand){
     list.insertAdjacentHTML('beforeend', `
-      <div class="alert info">
+      <div class="alert info" style="opacity:.85;">
         <span class="ico">ℹ</span>
-        <div class="body"><strong>لا توجد تنبيهات حرجة حالياً</strong><span>جميع الكيانات ضمن نطاقات مستقرة نسبياً. راجع التفاصيل لكل شركة أدناه.</span></div>
+        <div class="body"><strong>لا توجد كيانات في النطاق الأحمر حسب هذا الملف</strong><span>مرجعي فقط.</span></div>
       </div>`);
   }
 }
@@ -176,27 +186,38 @@ function renderCompanyGrid(stats){
   const grid = document.getElementById('company-grid');
   grid.innerHTML = '';
   Object.values(stats).forEach(s=>{
+    const decisionResults = PROFESSION_DECISIONS.map(d => computeDecisionCompliance(s, d)).filter(r => r.applicable);
+    const gaps = decisionResults.filter(r => !r.compliant);
+    const totalGapPeople = gaps.reduce((sum, r) => sum + r.gap, 0);
+
     const card = document.createElement('a');
     card.className = 'co-card';
     card.href = s.cfg.page;
-    card.style.borderTopColor = s.band.color.replace('var(','').replace(')','') ? getComputedStyle(document.documentElement).getPropertyValue(s.band.color.replace('var(','').replace(')','')) : '';
+    card.style.borderTopColor = getComputedStyle(document.documentElement).getPropertyValue(s.band.color.replace('var(','').replace(')',''));
     card.innerHTML = `
       <div>
         <div class="co-name">${s.cfg.name}</div>
         <div class="co-id">سجل: ${s.cfg.id}</div>
       </div>
       <div>
-        <div class="co-pct num">${s.pct.toFixed(1)}%</div>
-        <span class="co-band-label" style="background:color-mix(in srgb, ${s.band.color} 16%, white); color:${s.band.color}">
-          <span class="dot" style="background:${s.band.color}"></span>${s.band.name}
-        </span>
+        ${gaps.length
+          ? `<div class="co-pct num" style="color:var(--band-red);font-size:32px;">${gaps.length} قرار</div>
+             <div style="font-size:12.5px;color:var(--ink-soft);margin-top:2px;">يحتاج ${totalGapPeople} سعودي إضافي لسد فجوات التوطين المهني</div>`
+          : `<div class="co-pct num" style="color:var(--band-high);font-size:32px;">✓ ملتزم</div>
+             <div style="font-size:12.5px;color:var(--ink-soft);margin-top:2px;">لا فجوات في قرارات توطين المهن المطبّقة</div>`
+        }
       </div>
       <div class="co-counts">
         <div><b class="num">${s.total}</b>الإجمالي</div>
         <div><b class="num">${s.saudiCount}</b>سعودي</div>
         <div><b class="num">${s.nonSaudiCount}</b>غير سعودي</div>
       </div>
-      <div class="cta">عرض التفاصيل ←</div>
+      <div style="display:flex;align-items:center;justify-content:space-between;border-top:1px dashed var(--line);padding-top:10px;">
+        <span class="co-band-label" style="font-size:11px;padding:3px 8px;background:color-mix(in srgb, ${s.band.color} 14%, white); color:${s.band.color}">
+          <span class="dot" style="background:${s.band.color}"></span>نطاقات: ${s.pct.toFixed(1)}% (${s.band.name})
+        </span>
+        <span class="cta" style="margin:0;">التفاصيل ←</span>
+      </div>
     `;
     grid.appendChild(card);
   });

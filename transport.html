@@ -40,28 +40,51 @@
 
 <div id="content" style="display:none">
 
-<section>
-  <div class="wrap">
-    <div class="chart-grid" style="grid-template-columns:.9fr 1.5fr;">
-      <div class="gauge-card">
-        <div id="gauge-svg"></div>
-        <div class="gauge-pct num" id="gauge-pct-label"></div>
-        <div class="gauge-band" id="gauge-band-label"></div>
-        <div class="gauge-sub" id="gauge-sub"></div>
-        <div style="font-size:11.5px;color:var(--ink-soft);margin-top:10px;line-height:1.5;">النسبة هنا = عدد السعوديين ÷ الإجمالي من ملف البيانات، وهي تقديرية.<br>الحساب الرسمي لمنصة قوى قد يستخدم أوزاناً إضافية (نوع العقد، ذوي الإعاقة، ...) — راجع قوى للرقم المعتمد رسمياً.</div>
-      </div>
-      <div id="ruler-container"></div>
-    </div>
-  </div>
-</section>
-
 <section style="padding-top:0">
   <div class="wrap">
     <div class="stat-grid">
       <div class="stat-box"><div class="v num" id="stat-total"></div><div class="l">إجمالي الموظفين</div></div>
       <div class="stat-box gold"><div class="v num" id="stat-saudi"></div><div class="l">موظفون سعوديون</div></div>
       <div class="stat-box"><div class="v num" id="stat-nonsaudi"></div><div class="l">موظفون غير سعوديين</div></div>
-      <div class="stat-box red" id="need-box"><div class="v num" id="stat-need"></div><div class="l" id="stat-need-label">للوصول للنطاق التالي</div></div>
+      </div>
+  </div>
+</section>
+
+<section style="padding-top:0" id="decisions-section">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>🎯 الالتزام بقرارات توطين المهن (وزارة الموارد البشرية)</h2>
+      <span class="hint">مطابقة تلقائية بين مسميات موظفيكم وقرارات التوطين المهني الرسمية</span>
+    </div>
+    <div id="outlet-decision-alert"></div>
+    <div class="guide-grid" id="decisions-grid" style="grid-template-columns:repeat(2,1fr);"></div>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="wrap">
+    <div class="section-head">
+      <h2>🎯 نسبة توطين كل مهنة</h2>
+      <span class="hint">سعودي ÷ إجمالي العاملين في نفس المهنة — مختلف عن نسبة الشركة ككل</span>
+    </div>
+    <div class="table-card">
+      <div class="table-scroll" style="max-height:520px;">
+        <table>
+          <thead>
+            <tr><th>المهنة</th><th>سعودي</th><th>غير سعودي</th><th>الإجمالي</th><th>نسبة التوطين المهني</th></tr>
+          </thead>
+          <tbody id="job-loc-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section style="padding-top:0">
+  <div class="wrap">
+    <div class="section-head"><h2>أكثر المهن عدداً</h2></div>
+    <div class="chart-card">
+      <div class="canvas-wrap" style="height:340px;"><canvas id="chart-jobs"></canvas></div>
     </div>
   </div>
 </section>
@@ -82,42 +105,22 @@
   </div>
 </section>
 
-<section style="padding-top:0">
+<section style="padding-top:22px;padding-bottom:22px;">
   <div class="wrap">
-    <div class="section-head"><h2>أكثر المهن عدداً</h2></div>
-    <div class="chart-card">
-      <div class="canvas-wrap" style="height:340px;"><canvas id="chart-jobs"></canvas></div>
+    <div class="section-head" style="margin-bottom:14px;">
+      <h2 style="font-size:16px;">مرجع: نطاقات نطاقات (Nitaqat)</h2>
+      <span class="hint">للاطلاع فقط — النطاق الرسمي معتمد من منصة قوى</span>
     </div>
-  </div>
-</section>
-
-<section style="padding-top:0" id="decisions-section">
-  <div class="wrap">
-    <div class="section-head">
-      <h2>الالتزام بقرارات توطين المهن (وزارة الموارد البشرية)</h2>
-      <span class="hint">مطابقة تلقائية بين مسميات موظفيكم وقرارات التوطين المهني الرسمية</span>
-    </div>
-    <div id="outlet-decision-alert"></div>
-    <div class="guide-grid" id="decisions-grid" style="grid-template-columns:repeat(2,1fr);"></div>
-  </div>
-</section>
-
-<section style="padding-top:0">
-  <div class="wrap">
-    <div class="section-head">
-      <h2>نسبة توطين كل مهنة</h2>
-      <span class="hint">سعودي ÷ إجمالي العاملين في نفس المهنة — مختلف عن نسبة الشركة ككل</span>
-    </div>
-    <div class="table-card">
-      <div class="table-scroll" style="max-height:520px;">
-        <table>
-          <thead>
-            <tr><th>المهنة</th><th>سعودي</th><th>غير سعودي</th><th>الإجمالي</th><th>نسبة التوطين المهني</th></tr>
-          </thead>
-          <tbody id="job-loc-body"></tbody>
-        </table>
+    <div class="chart-grid" style="grid-template-columns:.55fr 1.5fr; align-items:center;">
+      <div class="gauge-card" style="padding:16px;">
+        <div id="gauge-svg" style="transform:scale(.72); margin:-24px 0;"></div>
+        <div class="gauge-pct num" id="gauge-pct-label" style="font-size:34px;margin-top:-40px;"></div>
+        <div class="gauge-band" id="gauge-band-label" style="font-size:12px;padding:3px 10px;"></div>
+        <div class="gauge-sub" id="gauge-sub" style="font-size:11.5px;"></div>
       </div>
+      <div id="ruler-container"></div>
     </div>
+    <div style="font-size:11px;color:var(--ink-soft);margin-top:10px;line-height:1.5;">النسبة هنا = عدد السعوديين ÷ الإجمالي من ملف البيانات، وهي تقديرية. الحساب الرسمي لمنصة قوى قد يستخدم أوزاناً إضافية (نوع العقد، ذوي الإعاقة، ...) — راجع قوى للرقم المعتمد رسمياً.</div>
   </div>
 </section>
 
@@ -211,15 +214,6 @@ function renderStats(){
   document.getElementById('stat-total').textContent = STATS.total;
   document.getElementById('stat-saudi').textContent = STATS.saudiCount;
   document.getElementById('stat-nonsaudi').textContent = STATS.nonSaudiCount;
-  if(STATS.nextBand){
-    document.getElementById('stat-need').textContent = STATS.neededForNext;
-    document.getElementById('stat-need-label').textContent = `سعودي للوصول لنطاق «${STATS.nextBand.name}»`;
-  } else {
-    document.getElementById('need-box').classList.remove('red');
-    document.getElementById('need-box').classList.add('green');
-    document.getElementById('stat-need').textContent = '✓';
-    document.getElementById('stat-need-label').textContent = 'أعلى نطاق ممكن (بلاتيني)';
-  }
 }
 
 function renderCharts(){
